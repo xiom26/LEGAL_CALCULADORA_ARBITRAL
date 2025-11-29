@@ -766,7 +766,7 @@ function renumerarPretensiones() {
 
 function guardarEstadoActual(){
   const estado = estadoCalculadoras[modoActual];
-  estado.montoContractual = document.getElementById('monto').value;
+  estado.montoContractual = document.getElementById('montoContractual').value;
 
   const pretensiones = [];
   document.querySelectorAll('.pretension-box').forEach(box => {
@@ -783,7 +783,7 @@ function guardarEstadoActual(){
 function renderizarEstado(modo){
   const estado = estadoCalculadoras[modo];
 
-  document.getElementById('monto').value = estado.montoContractual;
+  document.getElementById('montoContractual').value = estado.montoContractual;
 
   const container = document.getElementById('pretensiones-container');
   container.innerHTML = '';
@@ -942,11 +942,6 @@ function reiniciarCalculadora(){
   actualizarEleccion();
   cerrarModal();
 }
-
-// Inicializar con una pretensión
-document.addEventListener('DOMContentLoaded', () => {
-  agregarPretension();
-});
   </script>
 
 
