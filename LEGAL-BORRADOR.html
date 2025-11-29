@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calculadora de Costos Arbitrales</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --vino:#772140;
+    --vino-oscuro:#68092b;
+    --dorado:#d2ae6d;
+    --dorado-oscuro:#b8955a;
+    --gris:#e7e7e7;
+    --texto:#333;
+  }
+
+  body{
+    font-family:'Poppins', sans-serif;
+    background:#fafafa;
+    margin:0;
+    padding:0;
+  }
+
+  .calc-container{
+    max-width:900px;
+    margin:40px auto;
+    background:white;
+    border-radius:12px;
+    border:3px solid var(--vino);
+    padding:40px 50px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+  }
+
+  h1{
+    font-family:"Montserrat", sans-serif;
+    font-size:28px;
+    font-weight:600;
+    color:var(--vino-oscuro);
+    text-align:center;
+    margin-bottom:5px;
+  }
+
+  .sub{
+    text-align:center;
+    margin-bottom:30px;
+    color:#555;
+    font-size:15px;
+  }
+
+  /* TITULOS */
+  .section-title{
+    font-size:20px;
+    font-family:Montserrat;
+    font-weight:600;
+    color:var(--vino-oscuro);
+    margin-top:20px;
+    margin-bottom:10px;
+  }
+
+  /* PRETENSIONES */
+  .pretension-box{
+    background:#faf7f7;
+    border:2px solid var(--gris);
+    padding:15px 20px;
+    border-radius:10px;
+    margin-bottom:15px;
+    position:relative;
+  }
+
+  .pretension-title{
+    font-size:17px;
+    font-family:Montserrat;
+    font-weight:500;
+    color:var(--vino);
+    margin-top:0;
+    margin-bottom:10px;
+  }
+
+  /* BOTÓN ELIMINAR */
+  .delete-btn{
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:none;
+    border:none;
+    font-size:18px;
+    color:var(--vino-oscuro);
+    font-weight:600;
+    cursor:pointer;
+    transition:0.2s;
+  }
+  .delete-btn:hover{
+    color:var(--vino);
+  }
+
+  /* inputs */
+  .form-group{
+    margin-bottom:12px;
+  }
+  .form-group label{
+    display:block;
+    font-weight:500;
+    font-size:14px;
+    margin-bottom:5px;
+    color:#444;
+  }
+  .form-group input, .form-group select{
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    font-size:15px;
+    background:white;
+  }
+
+  /* BOTONES */
+  .btn{
+    background:var(--vino-oscuro);
+    border:none;
+    padding:12px 25px;
+    font-size:16px;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+    transition:0.2s;
+    margin-top:10px;
+    margin-right:10px;
+  }
+  .btn:hover{
+    background:var(--vino);
+  }
+
+  .btn-secondary{
+    background:var(--dorado-oscuro);
+    font-weight:400;
+  }
+  .btn-secondary:hover{
+    background:var(--dorado);
+    color:white;
+  }
+
+  .btn-secondary::before{
+    content:"+ ";
+    color:white;
+    font-weight:600;
+  }
+
+  /* RESULTADOS */
+  .result{
+    margin-top:30px;
+    padding:25px;
+    border-radius:12px;
+    background:#fffef8;
+    border:2px solid var(--dorado);
+  }
+
+  .result h2{
+    font-size:22px;
+    font-family:Montserrat;
+    font-weight:600;
+    color:var(--vino-oscuro);
+    margin-bottom:15px;
+  }
+
+  .result p{
+    font-size:15px;
+    margin:8px 0;
+    color:#444;
+  }
+
+  .result span{
+    font-weight:600;
+    color:var(--vino);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="calc-container">
+
+  <h1>Calculadora de Costos</h1>
+  <div class="sub">Calcule los costos arbitrales según las pretensiones determinadas o indeterminadas.</div>
+
+  <!-- =====================
+       MONTO CONTRACTUAL
+  ====================== -->
+  <div class="section-title">Monto Contractual</div>
+
+  <div class="form-group">
+    <label>Monto contractual (S/):</label>
+    <input type="number" id="montoContractual" placeholder="Ingrese el monto contractual">
+  </div>
+
+  <!-- =====================
+       PRETENSIONES
+  ====================== -->
+  <div class="section-title">Pretensiones</div>
+
+  <div id="pretensiones-container"></div>
+
+  <button class="btn-secondary" onclick="agregarPretension()">AGREGAR PRETENSIÓN</button>
+
+  <!-- =====================
+       TIPO DE ORGANO
+  ====================== -->
+  <div class="section-title">Órgano Arbitral</div>
+
+  <div class="form-group">
+    <label>Seleccione:</label>
+    <input type="radio" id="arbitroUnico" name="tipoArbitro" value="unico" checked> Árbitro Único  
+    &nbsp;&nbsp;&nbsp;
+    <input type="radio" id="tribunalArbitral" name="tipoArbitro" value="tribunal"> Tribunal Arbitral
+  </div>
+
+  <button class="btn" onclick="calcular()">CALCULAR</button>
+
+  <div id="resultado" class="result" style="display:none;">
+    <h2>Resumen de costos</h2>
+    <p><strong>Cuantía Total:</strong> <span id="cuantiaTotal"></span></p>
+    <p><strong>Gastos Administrativos:</strong> <span id="gastosAdmin"></span></p>
+    <p><strong>Honorarios Arbitrales:</strong> <span id="honorariosArbitrales"></span></p>
+    <p><strong>Total sin IGV:</strong> <span id="totalPagarSinIGV"></span></p>
+    <p><strong>Total con IGV (18%):</strong> <span id="totalPagarConIGV"></span></p>
+  </div>
+
+</div>
+
+
+<!-- =====================
+     LÓGICA JS COMPLETA
+===================== -->
+
+<script>
+/* TABLAS - ANEXO N°2 */
+const gastosAdminBrackets = [
+  { minQ: 20001, maxQ: 60000, baseExcess: 15000, rate: 0.06, minAmt:1200, maxAmt:3900 },
+  { minQ: 60001, maxQ:150000, baseExcess:60000, rate:0.04, minAmt:3900, maxAmt:7500 },
+  { minQ:150001, maxQ:300000, baseExcess:150000, rate:0.02, minAmt:7500, maxAmt:10500 },
+  { minQ:300001, maxQ:500000, baseExcess:300000, rate:0.015,minAmt:10500,maxAmt:13500 },
+  { minQ:500001, maxQ:1000000, baseExcess:500000, rate:0.01,minAmt:13500,maxAmt:18500 },
+  { minQ:1000001,maxQ:5000000, baseExcess:1000000, rate:0.005,minAmt:18500,maxAmt:38500 },
+  { minQ:5000001,maxQ:50000000,baseExcess:5000000, rate:0.002,minAmt:38500,maxAmt:128500 },
+  { minQ:50000000.01,maxQ:Infinity,baseExcess:50000000,rate:0.003,minAmt:128500,maxAmt:null }
+];
+
+const arbitroUnicoBrackets = [
+  { minQ:20001,maxQ:60000, baseExcess:15000, rate:0.065,minAmt:1300,maxAmt:4225 },
+  { minQ:60001,maxQ:150000,baseExcess:60000,rate:0.07,minAmt:4225,maxAmt:10525 },
+  { minQ:150001,maxQ:300000,baseExcess:150000,rate:0.02,minAmt:10525,maxAmt:13525 },
+  { minQ:300001,maxQ:500000,baseExcess:300000,rate:0.006,minAmt:13525,maxAmt:14725 },
+  { minQ:500001,maxQ:1000000,baseExcess:500000,rate:0.008,minAmt:14725,maxAmt:18725 },
+  { minQ:1000001,maxQ:5000000,baseExcess:1000000,rate:0.005,minAmt:18725,maxAmt:38725 },
+  { minQ:5000001,maxQ:50000000,baseExcess:5000000,rate:0.003,minAmt:38725,maxAmt:173725 },
+  { minQ:50000000.01,maxQ:Infinity,baseExcess:50000000,rate:0.003,minAmt:173725,maxAmt:null }
+];
+
+const tribunalBrackets = [
+  { minQ:20001,maxQ:60000,baseExcess:15000,rate:0.30,minAmt:4500,maxAmt:18000 },
+  { minQ:60001,maxQ:150000,baseExcess:60000,rate:0.12,minAmt:18000,maxAmt:28800 },
+  { minQ:150001,maxQ:300000,baseExcess:150000,rate:0.05,minAmt:28800,maxAmt:36300 },
+  { minQ:300001,maxQ:500000,baseExcess:300000,rate:0.035,minAmt:36300,maxAmt:43300 },
+  { minQ:500001,maxQ:1000000,baseExcess:500000,rate:0.026,minAmt:43300,maxAmt:56300 },
+  { minQ:1000001,maxQ:5000000,baseExcess:1000000,rate:0.015,minAmt:56300,maxAmt:116300 },
+  { minQ:5000001,maxQ:50000000,baseExcess:5000000,rate:0.008,minAmt:116300,maxAmt:476300 },
+  { minQ:50000000.01,maxQ:Infinity,baseExcess:50000000,rate:0.008,minAmt:476300,maxAmt:null }
+];
+
+/* SISTEMA DE PRETENSIONES */
+let pretensionCount = 0;
+agregarPretension();
+
+function agregarPretension(){
+  pretensionCount++;
+
+  const id = pretensionCount;
+  const container = document.getElementById("pretensiones-container");
+
+  const div = document.createElement("div");
+  div.className="pretension-box";
+  div.id=`pret-${id}`;
+
+  div.innerHTML=`
+    <button class="delete-btn" onclick="eliminarPret(${id})">✖</button>
+    <h4 class="pretension-title">Pretensión ${id}</h4>
+
+    <div class="form-group">
+      <label>Tipo de pretensión:</label>
+      <select id="tipo${id}" onchange="toggleInd(${id})">
+        <option value="determinada">Determinada</option>
+        <option value="indeterminada">Indeterminada</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="montoDiv${id}">
+      <label>Monto de la pretensión (S/):</label>
+      <input type="number" id="monto${id}" placeholder="Solo si es determinada">
+    </div>
+
+    <div class="form-group" id="motivoDiv${id}" style="display:none;">
+      <label>Motivo:</label>
+      <select id="motivo${id}">
+        <option value="penalidad">Penalidad (10%)</option>
+        <option value="nulidad">Nulidad o resolución (100%)</option>
+        <option value="indet">Indeterminada (5%)</option>
+      </select>
+    </div>
+  `;
+
+  container.appendChild(div);
+
+  renumerarPretensiones();
+}
+
+function eliminarPret(id){
+    document.getElementById(`pret-${id}`).remove();
+    renumerarPretensiones();
+}
+
+function toggleInd(i){
+  const tipo = document.getElementById(`tipo${i}`).value;
+  document.getElementById(`montoDiv${i}`).style.display = tipo==="determinada" ? "block" : "none";
+  document.getElementById(`motivoDiv${i}`).style.display = tipo==="indeterminada" ? "block" : "none";
+}
+
+function renumerarPretensiones() {
+  const pretensiones = document.querySelectorAll('.pretension-box');
+
+  let num = 1;
+  pretensiones.forEach(box => {
+    // actualizar título
+    const title = box.querySelector('.pretension-title');
+    title.textContent = `Pretensión ${num}`;
+
+    // actualizar IDs internos para no romper lógica
+    box.id = `pret-${num}`;
+
+    // actualizar select e inputs internos
+    box.querySelectorAll('[id]').forEach(el => {
+      const base = el.id.replace(/[0-9]/g, ''); // quita números
+      el.id = base + num;
+    });
+
+    num++;
+  });
+
+  pretensionCount = pretensiones.length;
+}
+
+/* CÁLCULO POR TABLA */
+function calcularPorTabla(cuantia, tabla){
+  for(const b of tabla){
+    if(cuantia >= b.minQ && cuantia <= b.maxQ){
+      let calc = b.rate * (cuantia - b.baseExcess);
+      if(calc < b.minAmt) calc = b.minAmt;
+      if(b.maxAmt !== null && calc > b.maxAmt) calc = b.maxAmt;
+      return calc;
+    }
+  }
+  return 0;
+}
+
+/* CÁLCULO FINAL */
+function calcular(){
+  const mc = parseFloat(document.getElementById("montoContractual").value);
+  if(isNaN(mc) || mc<=0){ alert("Ingrese un monto contractual válido."); return; }
+
+  let cuantia = 0;
+
+  for(let i=1;i<=pretensionCount;i++){
+    const box = document.getElementById(`pret-${i}`);
+    if(!box) continue;
+
+    const tipo = document.getElementById(`tipo${i}`).value;
+
+    if(tipo==="determinada"){
+      const m = parseFloat(document.getElementById(`monto${i}`).value);
+      if(m>0) cuantia += m;
+    } else {
+      const motivo = document.getElementById(`motivo${i}`).value;
+      if(motivo==="penalidad") cuantia += mc*0.10;
+      else if(motivo==="nulidad") cuantia += mc;
+      else cuantia += mc*0.05;
+    }
+  }
+
+  if(cuantia < 20001){
+    alert("La cuantía total está por debajo de S/ 20,001 (primer rango oficial).");
+    return;
+  }
+
+  const usarUnico = document.getElementById("arbitroUnico").checked;
+
+  const gastos = calcularPorTabla(cuantia, gastosAdminBrackets);
+  const honorarios = calcularPorTabla(cuantia, usarUnico ? arbitroUnicoBrackets : tribunalBrackets);
+
+  const totalSin = gastos + honorarios;
+  const totalCon = totalSin * 1.18;
+
+  document.getElementById("cuantiaTotal").textContent = cuantia.toFixed(2);
+  document.getElementById("gastosAdmin").textContent = gastos.toFixed(2);
+  document.getElementById("honorariosArbitrales").textContent = honorarios.toFixed(2);
+  document.getElementById("totalPagarSinIGV").textContent = totalSin.toFixed(2);
+  document.getElementById("totalPagarConIGV").textContent = totalCon.toFixed(2);
+
+  document.getElementById("resultado").style.display="block";
+}
+
+</script>
+
+</body>
+</html>
