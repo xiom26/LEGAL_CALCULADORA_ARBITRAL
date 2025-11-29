@@ -550,11 +550,7 @@
 </div>
 
 
-<!-- =====================
-     LÓGICA JS COMPLETA
-===================== -->
-
-<script>
+  <script>
 const EXCHANGE_RATE = 3.555;
 
 /* TABLAS - ANEXO N°2 */
@@ -755,16 +751,12 @@ function renumerarPretensiones() {
       el.id = base + num;
     });
 
-    const selectorTipo = box.querySelector('select[id^="tipo"]');
-    if(selectorTipo){
-      selectorTipo.setAttribute('onchange', `toggleInd(${num})`);
-    }
+    // actualizar manejadores de evento inline (onclick, onchange)
+    const deleteBtn = box.querySelector('.delete-btn');
+    deleteBtn.setAttribute('onclick', `eliminarPret(${num})`);
 
-    box.querySelectorAll('[onclick]').forEach(el => {
-      if(el.getAttribute('onclick').includes('eliminarPret')){
-        el.setAttribute('onclick', `eliminarPret(${num})`);
-      }
-    });
+    const selectTipo = box.querySelector('select[id^="tipo"]');
+    selectTipo.setAttribute('onchange', `toggleInd(${num})`);
 
     num++;
   });
@@ -774,249 +766,189 @@ function renumerarPretensiones() {
 
 function guardarEstadoActual(){
   const estado = estadoCalculadoras[modoActual];
-  estado.montoContractual = document.getElementById("montoContractual").value;
-  estado.pretensiones = [];
+  estado.montoContractual = document.getElementById('monto').value;
 
-  for(let i=1;i<=pretensionCount;i++){
-    const box = document.getElementById(`pret-${i}`);
-    if(!box) continue;
+  const pretensiones = [];
+  document.querySelectorAll('.pretension-box').forEach(box => {
+    const id = box.id.split('-')[1];
+    const tipo = document.getElementById(`tipo${id}`).value;
+    const monto = document.getElementById(`monto${id}`).value;
+    const motivo = document.getElementById(`motivo${id}`).value;
+    pretensiones.push({ tipo, monto, motivo });
+  });
 
-    const tipo = document.getElementById(`tipo${i}`).value;
-    const monto = document.getElementById(`monto${i}`).value;
-    const motivo = document.getElementById(`motivo${i}`).value;
-
-    estado.pretensiones.push({ tipo, monto, motivo });
-  }
+  estado.pretensiones = pretensiones;
 }
 
 function renderizarEstado(modo){
   const estado = estadoCalculadoras[modo];
+
+  document.getElementById('monto').value = estado.montoContractual;
+
+  const container = document.getElementById('pretensiones-container');
+  container.innerHTML = '';
   pretensionCount = 0;
 
-  document.getElementById("montoContractual").value = estado.montoContractual;
-
-  const container = document.getElementById("pretensiones-container");
-  container.innerHTML = '';
-
-  if(estado.pretensiones.length === 0){
-    agregarPretension();
-  } else {
-    estado.pretensiones.forEach(data => agregarPretension(data));
-  }
+  estado.pretensiones.forEach(pret => agregarPretension(pret));
 
   actualizarToggleMoneda(estado.moneda);
   actualizarEtiquetasMoneda(estado.moneda);
 }
 
-/* MODAL Y UTILIDADES */
-function renderizarModal(moneda){
-  if(!ultimoResultado) return;
-
-  const divisor = moneda === 'USD' ? EXCHANGE_RATE : 1;
-  const simbolo = moneda === 'USD' ? 'USD' : 'S/';
-
-  document.getElementById('modalHonorariosLabel').textContent = modoActual === 'unico'
-    ? 'Honorarios Árbitro Único'
-    : 'Honorarios Tribunal Arbitral';
-
-  document.getElementById('modalCuantia').textContent = formatoMoneda(ultimoResultado.cuantiaPEN / divisor, simbolo);
-  document.getElementById('modalGastos').textContent = formatoMoneda(ultimoResultado.gastosPEN / divisor, simbolo);
-  document.getElementById('modalHonorarios').textContent = formatoMoneda(ultimoResultado.honorariosPEN / divisor, simbolo);
-  document.getElementById('modalTotal').textContent = formatoMoneda(ultimoResultado.totalSinPEN / divisor, simbolo);
-  document.getElementById('modalTotalIGV').textContent = formatoMoneda(ultimoResultado.totalConPEN / divisor, simbolo);
-
-  actualizarBotonModal(moneda);
-}
-
-function actualizarBotonModal(moneda){
-  const btn = document.getElementById('modalCurrencyBtn');
-  if(!btn) return;
-  const siguiente = moneda === 'USD' ? 'PEN' : 'USD';
-  btn.textContent = siguiente === 'USD' ? 'CAMBIAR A (USD) DÓLARES' : 'CAMBIAR A (S/) SOLES';
-}
-
-function mostrarModal(){
-  const overlay = document.getElementById('resultado-modal');
-  overlay.classList.add('show');
-  overlay.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('no-scroll');
-}
-
-function cerrarModal(){
-  const overlay = document.getElementById('resultado-modal');
-  overlay.classList.remove('show');
-  overlay.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('no-scroll');
-}
-
-function cambiarMonedaModal(){
-  const estado = estadoCalculadoras[modoActual];
-  const nueva = estado.moneda === 'USD' ? 'PEN' : 'USD';
-  cambiarMoneda(nueva);
-  if(ultimoResultado) renderizarModal(nueva);
-}
-
-function reiniciarCalculadora(){
-  ultimoResultado = null;
-  cerrarModal();
-  estadoCalculadoras.unico = crearEstadoBase();
-  estadoCalculadoras.tribunal = crearEstadoBase();
-  modoActual = 'unico';
-  pretensionCount = 0;
-  document.getElementById('arbitroUnico').checked = true;
-  document.getElementById('tribunalArbitral').checked = false;
-  renderizarEstado(modoActual);
-  actualizarEleccion();
-  document.getElementById('resultado').style.display = 'none';
-}
-
-function descargarPDF(){
-  if(!ultimoResultado) return;
-
-  const moneda = estadoCalculadoras[modoActual].moneda;
-  const divisor = moneda === 'USD' ? EXCHANGE_RATE : 1;
-  const simbolo = moneda === 'USD' ? 'USD' : 'S/';
-  const honorLabel = modoActual === 'unico' ? 'Honorarios Árbitro Único' : 'Honorarios Tribunal Arbitral';
-
-  const contenido = `
-    <html>
-      <head>
-        <title>Resumen de costos</title>
-        <style>
-          body{ font-family:'Poppins', sans-serif; padding:24px; color:#2d2d2d; }
-          h2{ color:#68092b; font-family:'Montserrat', sans-serif; }
-          table{ width:100%; border-collapse:collapse; margin-top:10px; }
-          th, td{ text-align:left; padding:10px; border:1px solid #e6dccd; }
-          th{ background:#fdf8f1; }
-          tfoot td{ font-weight:700; background:#fff7eb; }
-        </style>
-      </head>
-      <body>
-        <h2>Resumen de costos</h2>
-        <table>
-          <tbody>
-            <tr><th>Monto de la cuantía</th><td>${formatoMoneda(ultimoResultado.cuantiaPEN/divisor, simbolo)}</td></tr>
-            <tr><th>Servicio de Administración de Arbitraje</th><td>${formatoMoneda(ultimoResultado.gastosPEN/divisor, simbolo)}</td></tr>
-            <tr><th>${honorLabel}</th><td>${formatoMoneda(ultimoResultado.honorariosPEN/divisor, simbolo)}</td></tr>
-          </tbody>
-          <tfoot>
-            <tr><td>TOTAL</td><td>${formatoMoneda(ultimoResultado.totalSinPEN/divisor, simbolo)}</td></tr>
-            <tr><td>TOTAL con IGV (18%)</td><td>${formatoMoneda(ultimoResultado.totalConPEN/divisor, simbolo)}</td></tr>
-          </tfoot>
-        </table>
-      </body>
-    </html>
-  `;
-
-  const ventana = window.open('', '_blank');
-  ventana.document.write(contenido);
-  ventana.document.close();
-  ventana.focus();
-  setTimeout(() => {
-    ventana.print();
-  }, 350);
-}
-
-function guardarEstadoActual(){
-  const estado = estadoCalculadoras[modoActual];
-  estado.montoContractual = document.getElementById("montoContractual").value;
-  estado.pretensiones = [];
-
-  for(let i=1;i<=pretensionCount;i++){
-    const box = document.getElementById(`pret-${i}`);
-    if(!box) continue;
-
-    const tipo = document.getElementById(`tipo${i}`).value;
-    const monto = document.getElementById(`monto${i}`).value;
-    const motivo = document.getElementById(`motivo${i}`).value;
-
-    estado.pretensiones.push({ tipo, monto, motivo });
-  }
-}
-
-function renderizarEstado(modo){
-  const estado = estadoCalculadoras[modo];
-  pretensionCount = 0;
-
-  document.getElementById("montoContractual").value = estado.montoContractual;
-
-  const container = document.getElementById("pretensiones-container");
-  container.innerHTML = '';
-
-  if(estado.pretensiones.length === 0){
-    agregarPretension();
-  } else {
-    estado.pretensiones.forEach(data => agregarPretension(data));
-  }
-
-  actualizarToggleMoneda(estado.moneda);
-  actualizarEtiquetasMoneda(estado.moneda);
-}
-
-/* CÁLCULO POR TABLA */
-function calcularPorTabla(cuantia, tabla){
-  for(const b of tabla){
-    if(cuantia >= b.minQ && cuantia <= b.maxQ){
-      let calc = b.rate * (cuantia - b.baseExcess);
-      if(calc < b.minAmt) calc = b.minAmt;
-      if(b.maxAmt !== null && calc > b.maxAmt) calc = b.maxAmt;
-      return calc;
-    }
-  }
-  return 0;
-}
-
-/* CÁLCULO FINAL */
 function calcular(){
   guardarEstadoActual();
   const estado = estadoCalculadoras[modoActual];
+  const montoContractual = parseFloat(estado.montoContractual) || 0;
+  const moneda = estado.moneda;
+  const simbolo = moneda === 'USD' ? 'USD' : 'S/';
+  const tasa = moneda === 'USD' ? EXCHANGE_RATE : 1;
 
-  const mcIngresado = parseFloat(estado.montoContractual);
-  if(isNaN(mcIngresado) || mcIngresado<=0){ alert(`Ingrese un monto contractual válido en ${estado.moneda === 'USD' ? 'USD' : 'S/'}.`); return; }
+  const cuantia = calcularCuantia(montoContractual * tasa, estado.pretensiones);
 
-  const factor = estado.moneda === 'USD' ? EXCHANGE_RATE : 1;
-  const mc = mcIngresado * factor;
-
-  let cuantia = 0;
-
-  estado.pretensiones.forEach((pret) => {
-    if(pret.tipo === "determinada"){
-      const m = parseFloat(pret.monto);
-      if(m>0) cuantia += m * factor;
-    } else {
-      if(pret.motivo==="penalidad") cuantia += mc*0.10;
-      else if(pret.motivo==="nulidad") cuantia += mc;
-      else cuantia += mc*0.05;
-    }
-  });
-
-  if(cuantia < 20001){
-    alert(`La cuantía total está por debajo de S/ 20,001 (primer rango oficial).`);
+  if(cuantia <= 20000){
+    alert("La cuantía debe ser mayor a 20,000 soles para aplicar la tabla." );
     return;
   }
 
-  const usarUnico = modoActual === 'unico';
+  const gastosAdmin = calcularGastosAdmin(cuantia);
+  const honorarios = calcularHonorarios(cuantia, modoActual === 'unico' ? 'unico' : 'tribunal');
 
-  const gastosPEN = calcularPorTabla(cuantia, gastosAdminBrackets);
-  const honorariosPEN = calcularPorTabla(cuantia, usarUnico ? arbitroUnicoBrackets : tribunalBrackets);
-
-  const totalSinPEN = gastosPEN + honorariosPEN;
-  const totalConPEN = totalSinPEN * 1.18;
+  const total = gastosAdmin + honorarios;
+  const totalIgv = total * 1.18;
 
   ultimoResultado = {
-    modo: modoActual,
-    cuantiaPEN: cuantia,
-    gastosPEN,
-    honorariosPEN,
-    totalSinPEN,
-    totalConPEN
+    moneda,
+    simbolo,
+    cuantia: moneda === 'USD' ? cuantia / EXCHANGE_RATE : cuantia,
+    gastos: moneda === 'USD' ? gastosAdmin / EXCHANGE_RATE : gastosAdmin,
+    honorarios: moneda === 'USD' ? honorarios / EXCHANGE_RATE : honorarios,
+    total: moneda === 'USD' ? total / EXCHANGE_RATE : total,
+    totalIgv: moneda === 'USD' ? totalIgv / EXCHANGE_RATE : totalIgv,
   };
 
-  renderizarModal(estado.moneda);
-  mostrarModal();
+  renderizarModal(moneda);
 }
 
-</script>
+function calcularCuantia(montoContractual, pretensiones){
+  let cuantia = montoContractual;
+
+  pretensiones.forEach((pret) => {
+    if(pret.tipo === 'determinada'){
+      cuantia += parseFloat(pret.monto) || 0;
+    } else {
+      if(pret.motivo === 'penalidad'){
+        cuantia += montoContractual * 0.1;
+      } else if(pret.motivo === 'nulidad'){
+        cuantia += montoContractual;
+      } else if(pret.motivo === 'indet'){
+        cuantia += montoContractual * 0.05;
+      }
+    }
+  });
+
+  return cuantia;
+}
+
+function calcularGastosAdmin(cuantia){
+  const bracket = gastosAdminBrackets.find(b => cuantia >= b.minQ && cuantia <= b.maxQ);
+  if(!bracket) return 0;
+
+  const exceso = cuantia - bracket.baseExcess;
+  let gastos = (exceso * bracket.rate) + bracket.minAmt;
+  if(bracket.maxAmt && gastos > bracket.maxAmt) gastos = bracket.maxAmt;
+  return gastos;
+}
+
+function calcularHonorarios(cuantia, tipo){
+  const brackets = tipo === 'unico' ? arbitroUnicoBrackets : tribunalBrackets;
+  const bracket = brackets.find(b => cuantia >= b.minQ && cuantia <= b.maxQ);
+  if(!bracket) return 0;
+
+  const exceso = cuantia - bracket.baseExcess;
+  let honorarios = (exceso * bracket.rate) + bracket.minAmt;
+  if(bracket.maxAmt && honorarios > bracket.maxAmt) honorarios = bracket.maxAmt;
+  return honorarios;
+}
+
+function renderizarModal(moneda){
+  const simbolo = moneda === 'USD' ? 'USD' : 'S/';
+
+  document.getElementById('modalTitle').textContent = modoActual === 'unico' ? 'Árbitro Único' : 'Tribunal Arbitral';
+  document.getElementById('modalHonorariosLabel').textContent = modoActual === 'unico' ? 'Honorarios Árbitro Único' : 'Honorarios Tribunal Arbitral';
+
+  const res = ultimoResultado;
+  document.getElementById('modalCuantia').textContent = formatoMoneda(res.cuantia, simbolo);
+  document.getElementById('modalGastos').textContent = formatoMoneda(res.gastos, simbolo);
+  document.getElementById('modalHonorarios').textContent = formatoMoneda(res.honorarios, simbolo);
+  document.getElementById('modalTotal').textContent = formatoMoneda(res.total, simbolo);
+  document.getElementById('modalTotalIGV').textContent = formatoMoneda(res.totalIgv, simbolo);
+
+  const modal = document.getElementById('resultado-modal');
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+
+  const currencyBtn = document.getElementById('modalCurrencyBtn');
+  const nuevaMoneda = moneda === 'USD' ? 'PEN' : 'USD';
+  currencyBtn.textContent = `CAMBIAR A (${nuevaMoneda === 'USD' ? 'USD' : 'S/'}) ${nuevaMoneda === 'USD' ? 'DÓLARES' : 'SOLES'}`;
+}
+
+function cerrarModal(){
+  const modal = document.getElementById('resultado-modal');
+  modal.classList.remove('show');
+  document.body.style.overflow = 'auto';
+}
+
+function cambiarMonedaModal(){
+  const nuevaMoneda = estadoCalculadoras[modoActual].moneda === 'USD' ? 'PEN' : 'USD';
+  cambiarMoneda(nuevaMoneda);
+  calcular();
+}
+
+function descargarPDF(){
+  if(!ultimoResultado){
+    alert('Primero realiza un cálculo.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const simbolo = ultimoResultado.moneda === 'USD' ? 'USD' : 'S/';
+  const titulo = modoActual === 'unico' ? 'Árbitro Único' : 'Tribunal Arbitral';
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('Resumen del Cálculo Arbitral', 20, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Modo: ${titulo}`, 20, 30);
+  doc.text(`Cuantía: ${formatoMoneda(ultimoResultado.cuantia, simbolo)}`, 20, 40);
+  doc.text(`Servicio de Administración: ${formatoMoneda(ultimoResultado.gastos, simbolo)}`, 20, 50);
+  doc.text(`Honorarios: ${formatoMoneda(ultimoResultado.honorarios, simbolo)}`, 20, 60);
+  doc.text(`TOTAL: ${formatoMoneda(ultimoResultado.total, simbolo)}`, 20, 70);
+  doc.text(`TOTAL con IGV (18%): ${formatoMoneda(ultimoResultado.totalIgv, simbolo)}`, 20, 80);
+
+  doc.save('resumen-arbitraje.pdf');
+}
+
+function reiniciarCalculadora(){
+  estadoCalculadoras.unico = crearEstadoBase();
+  estadoCalculadoras.tribunal = crearEstadoBase();
+  modoActual = 'unico';
+  document.querySelector('input[value="unico"]').checked = true;
+  ultimoResultado = null;
+
+  renderizarEstado(modoActual);
+  actualizarEleccion();
+  cerrarModal();
+}
+
+// Inicializar con una pretensión
+document.addEventListener('DOMContentLoaded', () => {
+  agregarPretension();
+});
+  </script>
+
 
 </body>
 </html>
