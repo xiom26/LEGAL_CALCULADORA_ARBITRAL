@@ -917,6 +917,42 @@ function descargarPDF(){
   }, 350);
 }
 
+function guardarEstadoActual(){
+  const estado = estadoCalculadoras[modoActual];
+  estado.montoContractual = document.getElementById("montoContractual").value;
+  estado.pretensiones = [];
+
+  for(let i=1;i<=pretensionCount;i++){
+    const box = document.getElementById(`pret-${i}`);
+    if(!box) continue;
+
+    const tipo = document.getElementById(`tipo${i}`).value;
+    const monto = document.getElementById(`monto${i}`).value;
+    const motivo = document.getElementById(`motivo${i}`).value;
+
+    estado.pretensiones.push({ tipo, monto, motivo });
+  }
+}
+
+function renderizarEstado(modo){
+  const estado = estadoCalculadoras[modo];
+  pretensionCount = 0;
+
+  document.getElementById("montoContractual").value = estado.montoContractual;
+
+  const container = document.getElementById("pretensiones-container");
+  container.innerHTML = '';
+
+  if(estado.pretensiones.length === 0){
+    agregarPretension();
+  } else {
+    estado.pretensiones.forEach(data => agregarPretension(data));
+  }
+
+  actualizarToggleMoneda(estado.moneda);
+  actualizarEtiquetasMoneda(estado.moneda);
+}
+
 /* CÁLCULO POR TABLA */
 function calcularPorTabla(cuantia, tabla){
   for(const b of tabla){
