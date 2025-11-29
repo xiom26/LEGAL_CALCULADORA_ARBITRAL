@@ -396,8 +396,10 @@
     display:flex;
     gap:12px;
     padding:12px 18px 18px;
-    flex-wrap:wrap;
+    flex-wrap:nowrap;
     justify-content:flex-end;
+    align-items:center;
+    overflow-x:auto;
     background:#fbf4ea;
     border-top:1px solid #ecdfce;
   }
@@ -439,8 +441,6 @@
     .calc-container{ padding:24px; }
     .field-grid{ grid-template-columns:1fr; }
     .choice-row{ flex-direction:column; }
-    .modal-actions{ justify-content:center; }
-    .modal-btn{ width:100%; text-align:center; }
   }
 
 </style>
@@ -550,7 +550,8 @@
 </div>
 
 
-  <script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
 const EXCHANGE_RATE = 3.555;
 
 /* TABLAS - ANEXO N°2 */
@@ -910,25 +911,72 @@ function descargarPDF(){
     return;
   }
 
+  if(!window.jspdf){
+    alert('No se pudo cargar la librería para exportar a PDF.');
+    return;
+  }
+
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
 
   const simbolo = ultimoResultado.moneda === 'USD' ? 'USD' : 'S/';
   const titulo = modoActual === 'unico' ? 'Árbitro Único' : 'Tribunal Arbitral';
+  const fechaTexto = new Intl.DateTimeFormat('es-PE', { dateStyle:'short', timeStyle:'short' }).format(new Date());
+
+  const margin = 48;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const boxWidth = pageWidth - (margin * 2);
+  const rowHeight = 30;
+
+  let y = 64;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('Resumen del Cálculo Arbitral', 20, 20);
+  doc.setFontSize(18);
+  doc.setTextColor(104, 9, 43);
+  doc.text('Costos Arbitrales', margin, y);
 
-  doc.setFontSize(12);
-  doc.text(`Modo: ${titulo}`, 20, 30);
-  doc.text(`Cuantía: ${formatoMoneda(ultimoResultado.cuantia, simbolo)}`, 20, 40);
-  doc.text(`Servicio de Administración: ${formatoMoneda(ultimoResultado.gastos, simbolo)}`, 20, 50);
-  doc.text(`Honorarios: ${formatoMoneda(ultimoResultado.honorarios, simbolo)}`, 20, 60);
-  doc.text(`TOTAL: ${formatoMoneda(ultimoResultado.total, simbolo)}`, 20, 70);
-  doc.text(`TOTAL con IGV (18%): ${formatoMoneda(ultimoResultado.totalIgv, simbolo)}`, 20, 80);
+  y += 20;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(50, 50, 50);
+  doc.text(`Fecha: ${fechaTexto} | Modo: ${titulo} | Moneda: ${simbolo === 'USD' ? 'USD' : 'PEN'} | Tasa SUNAT: ${EXCHANGE_RATE}`, margin, y);
 
-  doc.save('resumen-arbitraje.pdf');
+  const filas = [
+    { etiqueta: 'Monto de la cuantía:', valor: formatoMoneda(ultimoResultado.cuantia, simbolo) },
+    { etiqueta: 'Servicio de Administración de Arbitraje', valor: formatoMoneda(ultimoResultado.gastos, simbolo) },
+    { etiqueta: titulo === 'Árbitro Único' ? 'Honorarios Árbitro Único' : 'Honorarios Tribunal Arbitral', valor: formatoMoneda(ultimoResultado.honorarios, simbolo) },
+    { etiqueta: 'TOTAL', valor: formatoMoneda(ultimoResultado.total, simbolo), destacado:true },
+    { etiqueta: 'TOTAL con IGV (18%)', valor: formatoMoneda(ultimoResultado.totalIgv, simbolo), destacado:true }
+  ];
+
+  y += 28;
+  const boxHeight = (rowHeight * filas.length) + 12;
+  doc.setDrawColor(184, 149, 90);
+  doc.setFillColor(253, 248, 241);
+  doc.roundedRect(margin, y, boxWidth, boxHeight, 10, 10, 'FD');
+
+  let cursorY = y + 26;
+  filas.forEach(fila => {
+    if(fila.destacado){
+      doc.setFillColor(247, 236, 213);
+      doc.rect(margin + 8, cursorY - 16, boxWidth - 16, rowHeight - 6, 'F');
+    }
+
+    doc.setFont('helvetica', fila.destacado ? 'bold' : 'normal');
+    doc.setFontSize(fila.destacado ? 12 : 11);
+    doc.setTextColor(66, 4, 26);
+    doc.text(fila.etiqueta, margin + 16, cursorY);
+    doc.text(fila.valor, margin + boxWidth - 16, cursorY, { align:'right' });
+
+    cursorY += rowHeight;
+  });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text('Reporte generado automáticamente por la calculadora de costos arbitrales.', margin, doc.internal.pageSize.getHeight() - 32);
+
+  doc.save(`costos-arbitrales-${modoActual}.pdf`);
 }
 
 function reiniciarCalculadora(){
