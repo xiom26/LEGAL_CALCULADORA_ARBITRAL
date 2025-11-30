@@ -155,9 +155,8 @@
     background:white;
     border:1px solid #dcdcdc;
     border-radius:10px;
-    padding:0 12px;
+    padding:0 10px;
     box-shadow:inset 0 1px 2px rgba(0,0,0,0.04);
-    max-width:520px;
     width:100%;
   }
 
@@ -170,7 +169,7 @@
   .input-wrap input,
   .form-group select{
     width:100%;
-    padding:12px 10px;
+    padding:10px 8px;
     border:none;
     font-size:15px;
     font-family:'Poppins', sans-serif;
@@ -182,9 +181,7 @@
     border:1px solid #dcdcdc;
     border-radius:10px;
     background:white;
-    padding:12px;
-    max-width:520px;
-    width:100%;
+    padding:10px 8px;
   }
 
   .currency-toggle{
@@ -560,7 +557,7 @@ const EXCHANGE_RATE = 3.555;
 
 /* TABLAS - ANEXO N°2 */
 const gastosAdminBrackets = [
-  { minQ: 20001, maxQ: 60000, baseExcess: 20000, rate: 0.06, minAmt:1200, maxAmt:3900 },
+  { minQ: 20001, maxQ: 60000, baseExcess: 15000, rate: 0.06, minAmt:1200, maxAmt:3900 },
   { minQ: 60001, maxQ:150000, baseExcess:60000, rate:0.04, minAmt:3900, maxAmt:7500 },
   { minQ:150001, maxQ:300000, baseExcess:150000, rate:0.02, minAmt:7500, maxAmt:10500 },
   { minQ:300001, maxQ:500000, baseExcess:300000, rate:0.015,minAmt:10500,maxAmt:13500 },
@@ -571,7 +568,7 @@ const gastosAdminBrackets = [
 ];
 
 const arbitroUnicoBrackets = [
-  { minQ:20001,maxQ:60000, baseExcess:20000, rate:0.065,minAmt:1300,maxAmt:4225 },
+  { minQ:20001,maxQ:60000, baseExcess:15000, rate:0.065,minAmt:1300,maxAmt:4225 },
   { minQ:60001,maxQ:150000,baseExcess:60000,rate:0.07,minAmt:4225,maxAmt:10525 },
   { minQ:150001,maxQ:300000,baseExcess:150000,rate:0.02,minAmt:10525,maxAmt:13525 },
   { minQ:300001,maxQ:500000,baseExcess:300000,rate:0.006,minAmt:13525,maxAmt:14725 },
@@ -582,7 +579,7 @@ const arbitroUnicoBrackets = [
 ];
 
 const tribunalBrackets = [
-  { minQ:20001,maxQ:60000,baseExcess:20000,rate:0.30,minAmt:4500,maxAmt:18000 },
+  { minQ:20001,maxQ:60000,baseExcess:15000,rate:0.30,minAmt:4500,maxAmt:18000 },
   { minQ:60001,maxQ:150000,baseExcess:60000,rate:0.12,minAmt:18000,maxAmt:28800 },
   { minQ:150001,maxQ:300000,baseExcess:150000,rate:0.05,minAmt:28800,maxAmt:36300 },
   { minQ:300001,maxQ:500000,baseExcess:300000,rate:0.035,minAmt:36300,maxAmt:43300 },
