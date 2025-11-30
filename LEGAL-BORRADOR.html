@@ -808,45 +808,49 @@ function calcular(){
   const simbolo = moneda === 'USD' ? 'USD' : 'S/';
   const tasa = moneda === 'USD' ? EXCHANGE_RATE : 1;
 
-  const cuantia = calcularCuantia(montoContractual * tasa, estado.pretensiones);
+  const montoContractualSoles = montoContractual * tasa;
+  const cuantiaSoles = calcularCuantia(montoContractualSoles, estado.pretensiones, tasa);
 
-  if(cuantia <= 20000){
-    alert("La cuantía debe ser mayor a 20,000 soles para aplicar la tabla." );
+  if(cuantiaSoles < 20001){
+    alert("La cuantía total está por debajo de S/ 20,001 (primer rango oficial).");
     return;
   }
 
-  const gastosAdmin = calcularGastosAdmin(cuantia);
-  const honorarios = calcularHonorarios(cuantia, modoActual === 'unico' ? 'unico' : 'tribunal');
+  const gastosAdminSoles = calcularPorTabla(cuantiaSoles, gastosAdminBrackets);
+  const honorariosSoles = calcularPorTabla(cuantiaSoles, modoActual === 'unico' ? arbitroUnicoBrackets : tribunalBrackets);
 
-  const total = gastosAdmin + honorarios;
-  const totalIgv = total * 1.18;
+  const totalSoles = gastosAdminSoles + honorariosSoles;
+  const totalIgvSoles = totalSoles * 1.18;
+
+  const divisor = moneda === 'USD' ? EXCHANGE_RATE : 1;
 
   ultimoResultado = {
     moneda,
     simbolo,
-    cuantia: moneda === 'USD' ? cuantia / EXCHANGE_RATE : cuantia,
-    gastos: moneda === 'USD' ? gastosAdmin / EXCHANGE_RATE : gastosAdmin,
-    honorarios: moneda === 'USD' ? honorarios / EXCHANGE_RATE : honorarios,
-    total: moneda === 'USD' ? total / EXCHANGE_RATE : total,
-    totalIgv: moneda === 'USD' ? totalIgv / EXCHANGE_RATE : totalIgv,
+    cuantia: cuantiaSoles / divisor,
+    gastos: gastosAdminSoles / divisor,
+    honorarios: honorariosSoles / divisor,
+    total: totalSoles / divisor,
+    totalIgv: totalIgvSoles / divisor,
   };
 
   renderizarModal(moneda);
 }
 
-function calcularCuantia(montoContractual, pretensiones){
-  let cuantia = montoContractual;
+function calcularCuantia(montoContractualSoles, pretensiones, tasa){
+  let cuantia = 0;
 
   pretensiones.forEach((pret) => {
     if(pret.tipo === 'determinada'){
-      cuantia += parseFloat(pret.monto) || 0;
+      const montoPret = parseFloat(pret.monto) || 0;
+      cuantia += montoPret * tasa;
     } else {
       if(pret.motivo === 'penalidad'){
-        cuantia += montoContractual * 0.1;
+        cuantia += montoContractualSoles * 0.1;
       } else if(pret.motivo === 'nulidad'){
-        cuantia += montoContractual;
-      } else if(pret.motivo === 'indet'){
-        cuantia += montoContractual * 0.05;
+        cuantia += montoContractualSoles;
+      } else {
+        cuantia += montoContractualSoles * 0.05;
       }
     }
   });
@@ -854,25 +858,16 @@ function calcularCuantia(montoContractual, pretensiones){
   return cuantia;
 }
 
-function calcularGastosAdmin(cuantia){
-  const bracket = gastosAdminBrackets.find(b => cuantia >= b.minQ && cuantia <= b.maxQ);
-  if(!bracket) return 0;
-
-  const exceso = cuantia - bracket.baseExcess;
-  let gastos = (exceso * bracket.rate) + bracket.minAmt;
-  if(bracket.maxAmt && gastos > bracket.maxAmt) gastos = bracket.maxAmt;
-  return gastos;
-}
-
-function calcularHonorarios(cuantia, tipo){
-  const brackets = tipo === 'unico' ? arbitroUnicoBrackets : tribunalBrackets;
-  const bracket = brackets.find(b => cuantia >= b.minQ && cuantia <= b.maxQ);
-  if(!bracket) return 0;
-
-  const exceso = cuantia - bracket.baseExcess;
-  let honorarios = (exceso * bracket.rate) + bracket.minAmt;
-  if(bracket.maxAmt && honorarios > bracket.maxAmt) honorarios = bracket.maxAmt;
-  return honorarios;
+function calcularPorTabla(cuantia, tabla){
+  for(const b of tabla){
+    if(cuantia >= b.minQ && cuantia <= b.maxQ){
+      let calc = b.rate * (cuantia - b.baseExcess);
+      if(calc < b.minAmt) calc = b.minAmt;
+      if(b.maxAmt !== null && calc > b.maxAmt) calc = b.maxAmt;
+      return calc;
+    }
+  }
+  return 0;
 }
 
 function renderizarModal(moneda){
